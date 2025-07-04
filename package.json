@@ -1,0 +1,41 @@
+{
+  "name": "agent-communication-mcp",
+  "version": "1.0.0",
+  "description": "Multi-Agent Communication System using Model Context Protocol (MCP) with file-based storage",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "demo": "node examples/demo.js",
+    "docker:setup": "bash scripts/docker-setup.sh",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:run": "bash scripts/docker-run.sh",
+    "docker:clean": "docker-compose down -v && docker system prune -f"
+  },
+  "keywords": [
+    "mcp",
+    "multi-agent",
+    "ai",
+    "llm",
+    "communication",
+    "file-based",
+    "autonomous"
+  ],
+  "author": "Agent Communication MCP Team",
+  "license": "MIT",
+  "dependencies": {
+    "chokidar": "^3.5.3",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

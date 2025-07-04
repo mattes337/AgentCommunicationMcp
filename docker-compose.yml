@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  agent-communication-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agent-mcp-system
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - MCP_LOG_LEVEL=info
+      - MCP_POLL_INTERVAL=1000
+      - MCP_MAX_AGENTS=50
+    volumes:
+      # Persist agent data
+      - agent-data:/app/agents
+      # Persist reports
+      - reports-data:/app/reports
+      # Persist logs
+      - logs-data:/app/logs
+    ports:
+      # Future HTTP API port
+      - "3000:3000"
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Health check passed')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Optional: Add a monitoring service
+  mcp-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: agent-mcp-monitor
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - MCP_MONITOR_MODE=true
+      - MCP_MONITOR_INTERVAL=5000
+    volumes:
+      - agent-data:/app/agents:ro  # Read-only access to agent data
+      - reports-data:/app/reports
+      - logs-data:/app/logs
+    networks:
+      - mcp-network
+    depends_on:
+      - agent-communication-mcp
+    command: ["node", "src/monitoring/monitor-daemon.js"]
+
+volumes:
+  agent-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker-data/agents
+  reports-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker-data/reports
+  logs-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker-data/logs
+
+networks:
+  mcp-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

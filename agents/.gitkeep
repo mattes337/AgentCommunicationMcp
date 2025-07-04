@@ -1,0 +1,2 @@
+# This file ensures the agents directory is tracked by git
+# Agent data will be created here during runtime
