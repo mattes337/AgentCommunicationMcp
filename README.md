@@ -8,31 +8,67 @@ This system enables autonomous AI agents/LLMs to collaborate on software develop
 
 ## Features
 
+- **Real MCP Server**: Implements proper Model Context Protocol server that agents connect to
 - **File-Based Agent Memory**: Each agent maintains context and tasks as simple files for immediate productivity
-- **MCP Service Integration**: Leverages Model Context Protocol for LLM agent communication
-- **Autonomous LLM Operation**: AI agents work independently on their codebases with persistent context
-- **Dependency Management**: Clear consumer-producer relationships between AI agents
+- **JSON-RPC Communication**: Standard JSON-RPC over stdio for MCP protocol compliance
+- **Autonomous Agent Operation**: Real agents connect and communicate via MCP protocol
+- **Dependency Management**: Clear consumer-producer relationships between agents
 - **Task Coordination**: File-based request-response mechanism for cross-agent collaboration
-- **Rapid Deployment**: Simple file storage enables immediate system deployment and testing
+- **HTTP API Wrapper**: REST API for easier testing and integration
 - **Docker Support**: Containerized deployment with monitoring capabilities
 
 ## Quick Start
 
-### Using npm
+### Global Installation (Recommended)
+
+1. **Install globally:**
+   ```bash
+   npm install -g agent-communication-mcp
+   ```
+
+2. **Start the MCP server:**
+   ```bash
+   agent-mcp server
+   ```
+
+3. **Configure Claude Desktop:**
+   Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+   ```json
+   {
+     "mcpServers": {
+       "agent-communication-mcp": {
+         "command": "agent-mcp",
+         "args": ["server"],
+         "env": {
+           "NODE_ENV": "production"
+         }
+       }
+     }
+   }
+   ```
+
+4. **Restart Claude Desktop** and start using AI agents!
+
+### Local Development
 
 1. **Install dependencies:**
    ```bash
    npm install
    ```
 
-2. **Run the demo:**
-   ```bash
-   npm run demo
-   ```
-
-3. **Start the system:**
+2. **Start the MCP server:**
    ```bash
    npm start
+   ```
+
+3. **Test MCP connections:**
+   ```bash
+   npm run test:mcp
+   ```
+
+4. **Run the HTTP API (for easier testing):**
+   ```bash
+   npm run api
    ```
 
 ### Using Docker
@@ -144,6 +180,38 @@ await taskQueue.activateTask(task.id);
 // Complete a task
 await taskQueue.completeTask(task.id, ['user-registration.js', 'validation-schema.js']);
 ```
+
+## Claude Desktop Integration
+
+### Setup with Claude Desktop
+
+1. **Install globally:**
+   ```bash
+   npm install -g agent-communication-mcp
+   ```
+
+2. **Add to Claude Desktop config:**
+   ```json
+   {
+     "mcpServers": {
+       "agent-communication-mcp": {
+         "command": "agent-mcp",
+         "args": ["server"]
+       }
+     }
+   }
+   ```
+
+3. **Use with Claude:**
+   ```
+   Please register a new agent with ID "frontend-dev" for React development.
+
+   Create a task for frontend-dev to build a login form with validation.
+
+   Show me the status of all agents in the system.
+   ```
+
+See [Claude Desktop Integration Guide](docs/CLAUDE_DESKTOP_INTEGRATION.md) for detailed instructions.
 
 ## MCP Communication
 

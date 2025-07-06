@@ -1,0 +1,207 @@
+#!/usr/bin/env node
+
+/**
+ * Global CLI for Agent Communication MCP
+ * Provides command-line interface for the MCP server
+ */
+
+const { spawn } = require('child_process');
+const path = require('path');
+const fs = require('fs');
+
+// Get the directory where this script is located
+const binDir = __dirname;
+const rootDir = path.resolve(binDir, '..');
+
+// Command line argument parsing
+const args = process.argv.slice(2);
+const command = args[0] || 'help';
+
+function showHelp() {
+    console.log(`
+Agent Communication MCP - Global CLI
+
+Usage: agent-mcp <command> [options]
+
+Commands:
+  server              Start the MCP server
+  version             Show version information
+  help                Show this help message
+
+Server Options:
+  --debug             Enable debug logging
+  --port <port>       HTTP API port (default: 3000)
+  --agents-path <path> Custom agents data path
+  --reports-path <path> Custom reports path
+
+Environment Variables:
+  NODE_ENV            Environment (development/production)
+  MCP_LOG_LEVEL       Log level (debug/info/warn/error)
+  MCP_AGENTS_PATH     Agents data directory
+  MCP_REPORTS_PATH    Reports directory
+  MCP_MAX_AGENTS      Maximum number of agents
+
+Examples:
+  agent-mcp server                    # Start MCP server
+  agent-mcp server --debug            # Start with debug logging
+  agent-mcp version                   # Show version
+  
+For Claude Desktop configuration, see:
+  https://github.com/your-org/agent-communication-mcp/blob/main/docs/GLOBAL_INSTALLATION.md
+`);
+}
+
+function showVersion() {
+    try {
+        const packagePath = path.join(rootDir, 'package.json');
+        const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+        console.log(`Agent Communication MCP v${packageJson.version}`);
+        console.log(`Node.js ${process.version}`);
+        console.log(`Platform: ${process.platform} ${process.arch}`);
+    } catch (error) {
+        console.log('Agent Communication MCP (version unknown)');
+    }
+}
+
+function startServer() {
+    const serverPath = path.join(rootDir, 'src', 'mcp-server.js');
+    
+    // Check if server file exists
+    if (!fs.existsSync(serverPath)) {
+        console.error('Error: MCP server file not found at', serverPath);
+        console.error('Please ensure the package is properly installed.');
+        process.exit(1);
+    }
+
+    // Parse additional arguments
+    const serverArgs = args.slice(1);
+    const debugMode = serverArgs.includes('--debug');
+    
+    // Set environment variables based on arguments
+    const env = { ...process.env };
+    
+    if (debugMode) {
+        env.MCP_LOG_LEVEL = 'debug';
+    }
+    
+    // Handle custom paths
+    const agentsPathIndex = serverArgs.indexOf('--agents-path');
+    if (agentsPathIndex !== -1 && serverArgs[agentsPathIndex + 1]) {
+        env.MCP_AGENTS_PATH = serverArgs[agentsPathIndex + 1];
+    }
+    
+    const reportsPathIndex = serverArgs.indexOf('--reports-path');
+    if (reportsPathIndex !== -1 && serverArgs[reportsPathIndex + 1]) {
+        env.MCP_REPORTS_PATH = serverArgs[reportsPathIndex + 1];
+    }
+
+    console.log('Starting Agent Communication MCP Server...');
+    console.log('Server path:', serverPath);
+    
+    if (debugMode) {
+        console.log('Debug mode enabled');
+    }
+    
+    // Start the server
+    const serverProcess = spawn('node', [serverPath], {
+        stdio: 'inherit',
+        env: env,
+        cwd: rootDir
+    });
+
+    // Handle process events
+    serverProcess.on('error', (error) => {
+        console.error('Failed to start MCP server:', error);
+        process.exit(1);
+    });
+
+    serverProcess.on('exit', (code, signal) => {
+        if (signal) {
+            console.log(`MCP server terminated by signal: ${signal}`);
+        } else if (code !== 0) {
+            console.error(`MCP server exited with code: ${code}`);
+            process.exit(code);
+        }
+    });
+
+    // Handle graceful shutdown
+    process.on('SIGINT', () => {
+        console.log('\nShutting down MCP server...');
+        serverProcess.kill('SIGINT');
+    });
+
+    process.on('SIGTERM', () => {
+        console.log('\nShutting down MCP server...');
+        serverProcess.kill('SIGTERM');
+    });
+}
+
+function startHttpApi() {
+    const apiPath = path.join(rootDir, 'src', 'http-api.js');
+    
+    // Check if API file exists
+    if (!fs.existsSync(apiPath)) {
+        console.error('Error: HTTP API file not found at', apiPath);
+        console.error('Please ensure the package is properly installed.');
+        process.exit(1);
+    }
+
+    console.log('Starting Agent Communication HTTP API...');
+    
+    // Start the HTTP API
+    const apiProcess = spawn('node', [apiPath], {
+        stdio: 'inherit',
+        env: process.env,
+        cwd: rootDir
+    });
+
+    // Handle process events
+    apiProcess.on('error', (error) => {
+        console.error('Failed to start HTTP API:', error);
+        process.exit(1);
+    });
+
+    apiProcess.on('exit', (code, signal) => {
+        if (signal) {
+            console.log(`HTTP API terminated by signal: ${signal}`);
+        } else if (code !== 0) {
+            console.error(`HTTP API exited with code: ${code}`);
+            process.exit(code);
+        }
+    });
+
+    // Handle graceful shutdown
+    process.on('SIGINT', () => {
+        console.log('\nShutting down HTTP API...');
+        apiProcess.kill('SIGINT');
+    });
+
+    process.on('SIGTERM', () => {
+        console.log('\nShutting down HTTP API...');
+        apiProcess.kill('SIGTERM');
+    });
+}
+
+// Main command handling
+switch (command) {
+    case 'server':
+        startServer();
+        break;
+    
+    case 'api':
+        startHttpApi();
+        break;
+    
+    case 'version':
+    case '--version':
+    case '-v':
+        showVersion();
+        break;
+    
+    case 'help':
+    case '--help':
+    case '-h':
+    default:
+        showHelp();
+        break;
+}

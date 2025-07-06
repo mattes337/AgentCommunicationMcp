@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "agent-communication-mcp": {
+      "command": "agent-mcp",
+      "args": ["server"],
+      "env": {
+        "NODE_ENV": "production",
+        "MCP_LOG_LEVEL": "info"
+      }
+    }
+  }
+}

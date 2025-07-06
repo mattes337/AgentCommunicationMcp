@@ -3,19 +3,26 @@
   "version": "1.0.0",
   "description": "Multi-Agent Communication System using Model Context Protocol (MCP) with file-based storage",
   "main": "src/index.js",
+  "bin": {
+    "agent-mcp": "./bin/agent-mcp"
+  },
   "scripts": {
-    "start": "node src/index.js",
+    "start": "node src/mcp-server.js",
     "dev": "node --watch src/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "demo": "node examples/demo.js",
+    "test:mcp": "node examples/mcp-test.js",
+    "api": "node src/http-api.js",
+    "test:server": "node examples/test-mcp-server.js",
     "docker:setup": "bash scripts/docker-setup.sh",
     "docker:build": "docker-compose build",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
     "docker:run": "bash scripts/docker-run.sh",
-    "docker:clean": "docker-compose down -v && docker system prune -f"
+    "docker:clean": "docker-compose down -v && docker system prune -f",
+    "install:global": "bash scripts/install-global.sh"
   },
   "keywords": [
     "mcp",
@@ -29,8 +36,11 @@
   "author": "Agent Communication MCP Team",
   "license": "MIT",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
     "chokidar": "^3.5.3",
-    "uuid": "^9.0.1"
+    "express": "^4.21.2",
+    "uuid": "^9.0.1",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "jest": "^29.7.0"
