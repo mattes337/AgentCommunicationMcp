@@ -196,7 +196,7 @@ async def main():
     async with ClientSession(server_params) as session:
         # Register an agent
         result = await session.call_tool(
-            "agent/register",
+            "agent-register",
             {
                 "agentId": "python-agent",
                 "capabilities": {

@@ -93,7 +93,7 @@ class MCPServerTest {
 
             // Test 1: Register an agent
             console.log('📝 Test 1: Registering an agent...');
-            const registerResponse = await this.sendMessage('agent/register', {
+            const registerResponse = await this.sendMessage('agent-register', {
                 agentId: 'test-frontend-agent',
                 capabilities: {
                     type: 'frontend',
@@ -106,7 +106,7 @@ class MCPServerTest {
 
             // Test 2: Create a task
             console.log('📋 Test 2: Creating a task...');
-            const taskResponse = await this.sendMessage('task/create', {
+            const taskResponse = await this.sendMessage('task-create', {
                 agentId: 'test-frontend-agent',
                 task: {
                     title: 'Build login form',
@@ -125,7 +125,7 @@ class MCPServerTest {
 
             // Test 3: Register another agent
             console.log('👥 Test 3: Registering second agent...');
-            const registerResponse2 = await this.sendMessage('agent/register', {
+            const registerResponse2 = await this.sendMessage('agent-register', {
                 agentId: 'test-api-agent',
                 capabilities: {
                     type: 'backend',
@@ -138,7 +138,7 @@ class MCPServerTest {
 
             // Test 4: Add relationship
             console.log('🔗 Test 4: Adding agent relationship...');
-            const relationshipResponse = await this.sendMessage('relationship/add', {
+            const relationshipResponse = await this.sendMessage('relationship-add', {
                 agentId: 'test-frontend-agent',
                 targetAgentId: 'test-api-agent',
                 relationshipType: 'producer'
@@ -148,7 +148,7 @@ class MCPServerTest {
 
             // Test 5: Send task request
             console.log('📤 Test 5: Sending task request...');
-            const taskRequestResponse = await this.sendMessage('task/request', {
+            const taskRequestResponse = await this.sendMessage('task-request', {
                 fromAgentId: 'test-frontend-agent',
                 toAgentId: 'test-api-agent',
                 taskRequest: {
@@ -167,7 +167,7 @@ class MCPServerTest {
 
             // Test 6: Update context
             console.log('📝 Test 6: Updating agent context...');
-            const contextResponse = await this.sendMessage('context/update', {
+            const contextResponse = await this.sendMessage('context-update', {
                 agentId: 'test-frontend-agent',
                 context: `# Frontend Agent Context\n\n## Current State\n- Working on login form\n- Requested API endpoints from backend team\n\n## Progress\n- UI mockups completed\n- Validation logic in progress`
             });
@@ -176,7 +176,7 @@ class MCPServerTest {
 
             // Test 7: Send message
             console.log('💬 Test 7: Sending inter-agent message...');
-            const messageResponse = await this.sendMessage('message/send', {
+            const messageResponse = await this.sendMessage('message-send', {
                 fromAgentId: 'test-frontend-agent',
                 toAgentId: 'test-api-agent',
                 messageType: 'STATUS_UPDATE',
@@ -191,7 +191,7 @@ class MCPServerTest {
 
             // Test 8: Get agent status
             console.log('📊 Test 8: Getting agent status...');
-            const statusResponse = await this.sendMessage('agent/status', {
+            const statusResponse = await this.sendMessage('agent-status', {
                 agentId: 'test-frontend-agent'
             });
             console.log('Response:', statusResponse);
@@ -199,7 +199,7 @@ class MCPServerTest {
 
             // Test 9: Get system status
             console.log('🌐 Test 9: Getting system status...');
-            const systemStatusResponse = await this.sendMessage('agent/status', {});
+            const systemStatusResponse = await this.sendMessage('agent-status', {});
             console.log('Response:', systemStatusResponse);
             console.log('✅ System status test passed\n');
 

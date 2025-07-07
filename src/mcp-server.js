@@ -173,6 +173,17 @@ class MCPAgentServer {
                 message: `Message sent from ${fromAgentId} to ${toAgentId}`
             };
         });
+
+        // Add MCP-compliant tool name handlers (without slashes)
+        // These map to the existing handlers for backward compatibility
+        this.messageHandlers.set('agent-register', this.messageHandlers.get('agent/register'));
+        this.messageHandlers.set('agent-status', this.messageHandlers.get('agent/status'));
+        this.messageHandlers.set('task-create', this.messageHandlers.get('task/create'));
+        this.messageHandlers.set('task-request', this.messageHandlers.get('task/request'));
+        this.messageHandlers.set('task-update', this.messageHandlers.get('task/update'));
+        this.messageHandlers.set('relationship-add', this.messageHandlers.get('relationship/add'));
+        this.messageHandlers.set('context-update', this.messageHandlers.get('context/update'));
+        this.messageHandlers.set('message-send', this.messageHandlers.get('message/send'));
     }
 
     /**
@@ -577,15 +588,19 @@ class MCPAgentServer {
         console.log('📁 Agent data will be stored in:', path.resolve(this.basePath));
         console.log('📊 Reports will be stored in:', path.resolve(this.reportsPath));
         console.log('');
-        console.log('Available MCP methods:');
-        console.log('  - agent/register: Register a new agent');
-        console.log('  - task/create: Create a new task');
-        console.log('  - task/request: Send task request between agents');
-        console.log('  - task/update: Update task status');
-        console.log('  - relationship/add: Add agent relationship');
-        console.log('  - agent/status: Get agent or system status');
-        console.log('  - context/update: Update agent context');
-        console.log('  - message/send: Send message between agents');
+        console.log('Available MCP tools (MCP-compliant names):');
+        console.log('  - agent-register: Register a new agent');
+        console.log('  - task-create: Create a new task');
+        console.log('  - task-request: Send task request between agents');
+        console.log('  - task-update: Update task status');
+        console.log('  - relationship-add: Add agent relationship');
+        console.log('  - agent-status: Get agent or system status');
+        console.log('  - context-update: Update agent context');
+        console.log('  - message-send: Send message between agents');
+        console.log('');
+        console.log('Legacy method names (still supported):');
+        console.log('  - agent/register, task/create, task/request, task/update');
+        console.log('  - relationship/add, agent/status, context/update, message/send');
         console.log('');
         console.log('Server ready for connections...');
 
