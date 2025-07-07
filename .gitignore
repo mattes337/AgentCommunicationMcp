@@ -172,3 +172,5 @@ mcp-logs/
 # Performance monitoring
 performance-*.json
 metrics-*.json
+
+docker-data/

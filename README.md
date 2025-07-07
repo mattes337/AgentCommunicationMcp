@@ -73,15 +73,25 @@ This system enables autonomous AI agents/LLMs to collaborate on software develop
 
 ### Using Docker
 
+#### Prerequisites
+- **Docker Desktop**: Download and install from [docker.com](https://www.docker.com/products/docker-desktop)
+- **Ensure Docker Desktop is running** before executing any Docker commands
+
+#### Setup and Run
+
 1. **Setup Docker environment:**
    ```bash
    npm run docker:setup
    ```
 
+   > **Windows Users**: This command automatically detects your platform and uses PowerShell scripts for Windows compatibility.
+
 2. **Build and run with Docker:**
    ```bash
    npm run docker:run
    ```
+
+   > **Note**: If you get connection errors, ensure Docker Desktop is running and try again.
 
 3. **View logs:**
    ```bash
@@ -92,6 +102,17 @@ This system enables autonomous AI agents/LLMs to collaborate on software develop
    ```bash
    npm run docker:down
    ```
+
+#### Troubleshooting Docker on Windows
+
+If you encounter issues:
+
+- **"Docker is not running"**: Start Docker Desktop and wait for it to fully initialize
+- **Permission errors**: Run your terminal as Administrator
+- **Build failures**: Try `docker system prune` to clean up disk space
+- **Port conflicts**: Ensure port 3000 is not in use by other applications
+
+For detailed Windows setup instructions, see the [Windows Docker Setup Guide](docs/WINDOWS_DOCKER_SETUP.md).
 
 ## Architecture
 
@@ -255,10 +276,13 @@ const report = await monitor.generateHealthReport();
 ### Docker Commands
 
 ```bash
-# Setup environment
+# Setup environment (cross-platform)
 npm run docker:setup
 
-# Build images
+# Build and run (cross-platform)
+npm run docker:run
+
+# Build images only
 npm run docker:build
 
 # Start services
@@ -273,6 +297,13 @@ npm run docker:down
 # Clean up
 npm run docker:clean
 ```
+
+#### Windows-Specific Notes
+
+- All Docker commands are **cross-platform compatible** and automatically detect Windows
+- PowerShell scripts are used on Windows for better compatibility
+- Ensure **Docker Desktop is running** before executing any commands
+- If using WSL2, ensure proper integration is enabled in Docker Desktop settings
 
 ## Development
 

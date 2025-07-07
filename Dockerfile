@@ -14,7 +14,7 @@ RUN addgroup -g 1001 -S appgroup && \
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production && \
+RUN npm ci --omit=dev && \
     npm cache clean --force
 
 # Copy application code
@@ -36,8 +36,8 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD node -e "console.log('Health check passed')" || exit 1
 
-# Default command
-CMD ["node", "src/index.js"]
+# Default command - run MCP server for persistent operation
+CMD ["node", "src/mcp-server.js"]
 
 # Labels for metadata
 LABEL maintainer="Agent Communication MCP Team"
