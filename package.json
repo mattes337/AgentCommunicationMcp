@@ -8,10 +8,13 @@
   },
   "scripts": {
     "start": "node src/mcp-server.js",
+    "start:shared": "node src/mcp-server-shared.js",
+    "start:proxy": "node src/mcp-proxy.js",
     "dev": "node --watch src/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:docker": "node scripts/test-cross-platform.js",
+    "test:shared": "node examples/test-shared-server.js",
     "demo": "node examples/demo.js",
     "test:mcp": "node examples/mcp-test.js",
     "api": "node src/http-api.js",

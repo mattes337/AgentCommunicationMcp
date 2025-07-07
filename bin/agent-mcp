@@ -24,15 +24,18 @@ Agent Communication MCP - Global CLI
 Usage: agent-mcp <command> [options]
 
 Commands:
-  server              Start the MCP server
+  server              Start the MCP server (stdio mode)
+  shared-server       Start the shared MCP server (WebSocket mode)
+  proxy               Start MCP proxy (connects to shared server)
   version             Show version information
   help                Show this help message
 
 Server Options:
   --debug             Enable debug logging
-  --port <port>       HTTP API port (default: 3000)
+  --port <port>       Server port (default: 8080 for shared, 3000 for HTTP API)
   --agents-path <path> Custom agents data path
   --reports-path <path> Custom reports path
+  --shared-url <url>  Shared server URL for proxy mode
 
 Environment Variables:
   NODE_ENV            Environment (development/production)
@@ -42,7 +45,10 @@ Environment Variables:
   MCP_MAX_AGENTS      Maximum number of agents
 
 Examples:
-  agent-mcp server                    # Start MCP server
+  agent-mcp server                    # Start MCP server (stdio mode)
+  agent-mcp shared-server             # Start shared MCP server
+  agent-mcp shared-server --port 9000 # Start shared server on port 9000
+  agent-mcp proxy                     # Start proxy to shared server
   agent-mcp server --debug            # Start with debug logging
   agent-mcp version                   # Show version
   
@@ -65,7 +71,7 @@ function showVersion() {
 
 function startServer() {
     const serverPath = path.join(rootDir, 'src', 'mcp-server.js');
-    
+
     // Check if server file exists
     if (!fs.existsSync(serverPath)) {
         console.error('Error: MCP server file not found at', serverPath);
@@ -76,32 +82,32 @@ function startServer() {
     // Parse additional arguments
     const serverArgs = args.slice(1);
     const debugMode = serverArgs.includes('--debug');
-    
+
     // Set environment variables based on arguments
     const env = { ...process.env };
-    
+
     if (debugMode) {
         env.MCP_LOG_LEVEL = 'debug';
     }
-    
+
     // Handle custom paths
     const agentsPathIndex = serverArgs.indexOf('--agents-path');
     if (agentsPathIndex !== -1 && serverArgs[agentsPathIndex + 1]) {
         env.MCP_AGENTS_PATH = serverArgs[agentsPathIndex + 1];
     }
-    
+
     const reportsPathIndex = serverArgs.indexOf('--reports-path');
     if (reportsPathIndex !== -1 && serverArgs[reportsPathIndex + 1]) {
         env.MCP_REPORTS_PATH = serverArgs[reportsPathIndex + 1];
     }
 
-    console.log('Starting Agent Communication MCP Server...');
+    console.log('Starting Agent Communication MCP Server (stdio mode)...');
     console.log('Server path:', serverPath);
-    
+
     if (debugMode) {
         console.log('Debug mode enabled');
     }
-    
+
     // Start the server
     const serverProcess = spawn('node', [serverPath], {
         stdio: 'inherit',
@@ -136,9 +142,147 @@ function startServer() {
     });
 }
 
+function startSharedServer() {
+    const serverPath = path.join(rootDir, 'src', 'mcp-server-shared.js');
+
+    // Check if server file exists
+    if (!fs.existsSync(serverPath)) {
+        console.error('Error: Shared MCP server file not found at', serverPath);
+        console.error('Please ensure the package is properly installed.');
+        process.exit(1);
+    }
+
+    // Parse additional arguments
+    const serverArgs = args.slice(1);
+    const debugMode = serverArgs.includes('--debug');
+
+    // Set environment variables based on arguments
+    const env = { ...process.env };
+
+    if (debugMode) {
+        env.MCP_LOG_LEVEL = 'debug';
+    }
+
+    // Handle custom port
+    const portIndex = serverArgs.indexOf('--port');
+    if (portIndex !== -1 && serverArgs[portIndex + 1]) {
+        env.MCP_PORT = serverArgs[portIndex + 1];
+    }
+
+    // Handle custom paths
+    const agentsPathIndex = serverArgs.indexOf('--agents-path');
+    if (agentsPathIndex !== -1 && serverArgs[agentsPathIndex + 1]) {
+        env.MCP_AGENTS_PATH = serverArgs[agentsPathIndex + 1];
+    }
+
+    const reportsPathIndex = serverArgs.indexOf('--reports-path');
+    if (reportsPathIndex !== -1 && serverArgs[reportsPathIndex + 1]) {
+        env.MCP_REPORTS_PATH = serverArgs[reportsPathIndex + 1];
+    }
+
+    console.log('Starting Shared Agent Communication MCP Server...');
+    console.log('Server path:', serverPath);
+
+    if (debugMode) {
+        console.log('Debug mode enabled');
+    }
+
+    // Start the server
+    const serverProcess = spawn('node', [serverPath], {
+        stdio: 'inherit',
+        env: env,
+        cwd: rootDir
+    });
+
+    // Handle process events
+    serverProcess.on('error', (error) => {
+        console.error('Failed to start shared MCP server:', error);
+        process.exit(1);
+    });
+
+    serverProcess.on('exit', (code, signal) => {
+        if (signal) {
+            console.log(`Shared MCP server terminated by signal: ${signal}`);
+        } else if (code !== 0) {
+            console.error(`Shared MCP server exited with code: ${code}`);
+            process.exit(code);
+        }
+    });
+
+    // Handle graceful shutdown
+    process.on('SIGINT', () => {
+        console.log('\nShutting down shared MCP server...');
+        serverProcess.kill('SIGINT');
+    });
+
+    process.on('SIGTERM', () => {
+        console.log('\nShutting down shared MCP server...');
+        serverProcess.kill('SIGTERM');
+    });
+}
+
+function startProxy() {
+    const proxyPath = path.join(rootDir, 'src', 'mcp-proxy.js');
+
+    // Check if proxy file exists
+    if (!fs.existsSync(proxyPath)) {
+        console.error('Error: MCP proxy file not found at', proxyPath);
+        console.error('Please ensure the package is properly installed.');
+        process.exit(1);
+    }
+
+    // Parse additional arguments
+    const serverArgs = args.slice(1);
+
+    // Set environment variables based on arguments
+    const env = { ...process.env };
+
+    // Handle custom shared server URL
+    const urlIndex = serverArgs.indexOf('--shared-url');
+    if (urlIndex !== -1 && serverArgs[urlIndex + 1]) {
+        env.MCP_SHARED_SERVER_URL = serverArgs[urlIndex + 1];
+    }
+
+    console.log('Starting MCP Proxy...');
+    console.log('Proxy path:', proxyPath);
+
+    // Start the proxy
+    const proxyProcess = spawn('node', [proxyPath], {
+        stdio: 'inherit',
+        env: env,
+        cwd: rootDir
+    });
+
+    // Handle process events
+    proxyProcess.on('error', (error) => {
+        console.error('Failed to start MCP proxy:', error);
+        process.exit(1);
+    });
+
+    proxyProcess.on('exit', (code, signal) => {
+        if (signal) {
+            console.log(`MCP proxy terminated by signal: ${signal}`);
+        } else if (code !== 0) {
+            console.error(`MCP proxy exited with code: ${code}`);
+            process.exit(code);
+        }
+    });
+
+    // Handle graceful shutdown
+    process.on('SIGINT', () => {
+        console.log('\nShutting down MCP proxy...');
+        proxyProcess.kill('SIGINT');
+    });
+
+    process.on('SIGTERM', () => {
+        console.log('\nShutting down MCP proxy...');
+        proxyProcess.kill('SIGTERM');
+    });
+}
+
 function startHttpApi() {
     const apiPath = path.join(rootDir, 'src', 'http-api.js');
-    
+
     // Check if API file exists
     if (!fs.existsSync(apiPath)) {
         console.error('Error: HTTP API file not found at', apiPath);
@@ -147,7 +291,7 @@ function startHttpApi() {
     }
 
     console.log('Starting Agent Communication HTTP API...');
-    
+
     // Start the HTTP API
     const apiProcess = spawn('node', [apiPath], {
         stdio: 'inherit',
@@ -187,17 +331,25 @@ switch (command) {
     case 'server':
         startServer();
         break;
-    
+
+    case 'shared-server':
+        startSharedServer();
+        break;
+
+    case 'proxy':
+        startProxy();
+        break;
+
     case 'api':
         startHttpApi();
         break;
-    
+
     case 'version':
     case '--version':
     case '-v':
         showVersion();
         break;
-    
+
     case 'help':
     case '--help':
     case '-h':
