@@ -9,6 +9,10 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const WebSocket = require('ws');
 const http = require('http');
+const MCPAgentServer = require('./mcp-server.js');
+
+// Load package.json to get project name and version
+const packageJson = require('../package.json');
 
 class SharedMCPServer {
     constructor(port = 8080) {
@@ -31,11 +35,6 @@ class SharedMCPServer {
      */
     setupHandlers() {
         // Import handlers from the original MCP server
-        const MCPAgentServer = require('./mcp-server.js');
-
-        // Load package.json to get project name and version
-        const packageJson = require('../package.json');
-
         const originalServer = new MCPAgentServer();
         
         // Copy all handlers from the original server
