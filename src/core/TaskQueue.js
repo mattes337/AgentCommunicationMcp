@@ -128,13 +128,13 @@ class TaskQueue {
     async completeTask(taskId, deliverables = []) {
         const activeTasks = await this.getActiveTasks();
         const taskIndex = activeTasks.findIndex(task => task.id === taskId);
-        
+
         if (taskIndex === -1) {
             throw new Error(`Task ${taskId} not found in active queue`);
         }
 
         const task = activeTasks[taskIndex];
-        
+
         // Update task with deliverables and completion status
         task.updateStatus('completed');
         deliverables.forEach(deliverable => task.addDeliverable(deliverable));
@@ -260,15 +260,15 @@ class TaskQueue {
      */
     async cleanupCompletedTasks(keepCount = 100) {
         const completedTasks = await this.getCompletedTasks();
-        
+
         if (completedTasks.length > keepCount) {
             // Sort by completion date (most recent first)
             completedTasks.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-            
+
             // Keep only the most recent tasks
             const tasksToKeep = completedTasks.slice(0, keepCount);
             await this.saveTasks(this.completedTasksPath, tasksToKeep);
-            
+
             console.log(`Cleaned up ${completedTasks.length - keepCount} old completed tasks for agent ${this.agent.agentId}`);
         }
     }

@@ -131,12 +131,55 @@ class MCPAgentServer {
                 throw new Error('Agent ID, task ID, and status are required');
             }
 
-            await this.updateTaskStatus(agentId, taskId, status, deliverables);
+            const task = await this.updateTaskStatus(agentId, taskId, status, deliverables);
 
-            return {
+            const response = {
                 success: true,
-                message: `Task ${taskId} status updated to ${status}`
+                message: `Task ${taskId} status updated to ${status}`,
+                task: task
             };
+
+            // If task is completed and was created by a different agent, provide incorporation guidance
+            if (status === 'completed' && task.created_by && task.created_by !== agentId) {
+                response.incorporation_needed = true;
+                response.incorporation_guidance = {
+                    message: `This task was created by ${task.created_by}. Consider creating an incorporation task for them to review and integrate your changes.`,
+                    creator_agent: task.created_by,
+                    completed_by: agentId,
+                    original_task: {
+                        id: task.id,
+                        title: task.title,
+                        description: task.description,
+                        priority: task.priority,
+                        deliverables: task.deliverables || [],
+                        metadata: task.metadata || {}
+                    },
+                    suggested_incorporation_task: {
+                        title: `Incorporate changes from: ${task.title}`,
+                        description: `Task "${task.title}" has been completed by ${agentId}. Please review and incorporate the following deliverables:\n\n${(task.deliverables || []).map(d => `- ${d}`).join('\n')}\n\nOriginal task description: ${task.description}`,
+                        priority: task.priority,
+                        agent_id: task.created_by,
+                        created_by: agentId,
+                        target_agent_id: task.created_by,
+                        reference_task_id: task.id,
+                        deliverables: task.deliverables || [],
+                        metadata: {
+                            ...(task.metadata || {}),
+                            incorporation_task: true,
+                            original_task_id: task.id,
+                            completed_by: agentId,
+                            tags: [...((task.metadata && task.metadata.tags) || []), 'incorporation', 'review']
+                        }
+                    },
+                    implementation_steps: [
+                        `1. Create a new task for agent "${task.created_by}" using the suggested_incorporation_task data`,
+                        `2. Use the task/create method with agentId="${task.created_by}"`,
+                        `3. The incorporation task will help ${task.created_by} review and integrate the deliverables: ${(task.deliverables || []).join(', ')}`
+                    ]
+                };
+            }
+
+            return response;
         });
 
         // Handle relationship management
@@ -429,7 +472,7 @@ class MCPAgentServer {
     async updateTaskStatus(agentId, taskId, status, deliverables) {
         const agentPath = path.join(this.basePath, agentId);
         const taskFiles = ['active.json', 'pending.json', 'completed.json'];
-        
+
         let taskFound = false;
         let task = null;
 
@@ -440,7 +483,7 @@ class MCPAgentServer {
                 const content = await fs.readFile(filePath, 'utf8');
                 const tasks = JSON.parse(content);
                 const taskIndex = tasks.findIndex(t => t.id === taskId);
-                
+
                 if (taskIndex !== -1) {
                     task = tasks[taskIndex];
                     task.status = status;
@@ -453,7 +496,7 @@ class MCPAgentServer {
                     if (status === 'completed' && fileName !== 'completed.json') {
                         tasks.splice(taskIndex, 1);
                         await fs.writeFile(filePath, JSON.stringify(tasks, null, 2), 'utf8');
-                        
+
                         const completedPath = path.join(agentPath, 'tasks', 'completed.json');
                         let completedTasks = [];
                         try {
@@ -467,7 +510,7 @@ class MCPAgentServer {
                     } else {
                         await fs.writeFile(filePath, JSON.stringify(tasks, null, 2), 'utf8');
                     }
-                    
+
                     taskFound = true;
                     break;
                 }
@@ -481,6 +524,7 @@ class MCPAgentServer {
         }
 
         console.log(`Task ${taskId} status updated to ${status} for agent ${agentId}`);
+        return task; // Return the task for use in the handler
     }
 
     /**

@@ -14,6 +14,7 @@ This system enables autonomous AI agents/LLMs to collaborate on software develop
 - **Autonomous Agent Operation**: Real agents connect and communicate via MCP protocol
 - **Dependency Management**: Clear consumer-producer relationships between agents
 - **Task Coordination**: File-based request-response mechanism for cross-agent collaboration
+- **Automatic Incorporation Tasks**: When an agent completes a task created by another agent, an incorporation task is automatically created for the creator to review and integrate changes
 - **HTTP API Wrapper**: REST API for easier testing and integration
 - **Docker Support**: Containerized deployment with monitoring capabilities
 
@@ -200,6 +201,81 @@ await taskQueue.activateTask(task.id);
 
 // Complete a task
 await taskQueue.completeTask(task.id, ['user-registration.js', 'validation-schema.js']);
+
+// When an agent completes a task created by another agent,
+// an incorporation task is automatically created for the creator
+// to review and incorporate the changes
+```
+
+### Automatic Incorporation Task Guidance
+
+When an agent completes a task that was created by a different agent, the MCP server provides detailed guidance and metadata to help the LLM agent create an appropriate incorporation task for the original creator.
+
+**How it works:**
+
+1. Agent A creates a task for Agent B
+2. Agent B completes the task using `task/update` with status 'completed'
+3. MCP server detects cross-agent completion and provides incorporation guidance
+4. LLM agent can use the guidance to create an incorporation task for Agent A
+
+**MCP Server Response for Cross-Agent Task Completion:**
+
+When completing a task created by another agent, the `task/update` method returns:
+
+```json
+{
+  "success": true,
+  "message": "Task completed",
+  "task": { /* completed task data */ },
+  "incorporation_needed": true,
+  "incorporation_guidance": {
+    "message": "This task was created by creator-agent. Consider creating an incorporation task...",
+    "creator_agent": "creator-agent",
+    "completed_by": "worker-agent",
+    "original_task": { /* original task details */ },
+    "suggested_incorporation_task": {
+      "title": "Incorporate changes from: [Original Task Title]",
+      "description": "Task has been completed by worker-agent. Please review and incorporate...",
+      "agent_id": "creator-agent",
+      "created_by": "worker-agent",
+      "target_agent_id": "creator-agent",
+      "reference_task_id": "original-task-id",
+      "deliverables": ["file1.js", "file2.js"],
+      "metadata": {
+        "incorporation_task": true,
+        "original_task_id": "original-task-id",
+        "completed_by": "worker-agent",
+        "tags": ["incorporation", "review"]
+      }
+    },
+    "implementation_steps": [
+      "1. Create a new task for agent 'creator-agent' using the suggested_incorporation_task data",
+      "2. Use the task/create method with agentId='creator-agent'",
+      "3. The incorporation task will help creator-agent review and integrate the deliverables"
+    ]
+  }
+}
+```
+
+**Example Usage:**
+
+```javascript
+// Complete a cross-agent task
+const response = await mcpClient.request('task/update', {
+    agentId: 'worker-agent',
+    taskId: 'task-123',
+    status: 'completed',
+    deliverables: ['login.js', 'register.js', 'auth-middleware.js']
+});
+
+// Check if incorporation guidance is provided
+if (response.incorporation_needed) {
+    // Create incorporation task using the suggested data
+    await mcpClient.request('task/create', {
+        agentId: response.incorporation_guidance.creator_agent,
+        task: response.incorporation_guidance.suggested_incorporation_task
+    });
+}
 ```
 
 ## Claude Desktop Integration
