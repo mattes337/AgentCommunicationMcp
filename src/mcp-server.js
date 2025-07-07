@@ -30,12 +30,12 @@ class MCPResponse {
 }
 
 class MCPAgentServer {
-    constructor() {
+    constructor(basePath = './agents', reportsPath = './reports') {
         this.connectedAgents = new Map();
         this.agentTasks = new Map();
         this.agentRelationships = new Map();
-        this.basePath = './agents';
-        this.reportsPath = './reports';
+        this.basePath = basePath;
+        this.reportsPath = reportsPath;
         this.messageHandlers = new Map();
 
         this.setupHandlers();
@@ -187,24 +187,31 @@ class MCPAgentServer {
     }
 
     /**
-     * Register a new agent
+     * Register a new agent or update existing one
      */
     async registerAgent(agentId, capabilities) {
-        console.log(`Registering agent: ${agentId}`);
-        
-        // Create agent directory structure
+        const isExisting = this.connectedAgents.has(agentId);
+        console.log(`${isExisting ? 'Updating' : 'Registering'} agent: ${agentId}`);
+
+        // Create agent directory structure (safe to call even if exists)
         const agentPath = path.join(this.basePath, agentId);
         await fs.mkdir(agentPath, { recursive: true });
         await fs.mkdir(path.join(agentPath, 'tasks'), { recursive: true });
         await fs.mkdir(path.join(agentPath, 'tasks', 'requests', 'incoming'), { recursive: true });
         await fs.mkdir(path.join(agentPath, 'tasks', 'requests', 'outgoing'), { recursive: true });
 
-        // Initialize agent files
+        // Initialize agent files (only if they don't exist)
         const contextPath = path.join(agentPath, 'context.md');
-        const defaultContext = `# Agent ${agentId} Context\n\n## Current State\n- Status: Connected to MCP Server\n- Registered: ${new Date().toISOString()}\n\n## Capabilities\n${JSON.stringify(capabilities, null, 2)}\n\n## Knowledge Base\n\n## Recent Activities\n\n## Notes\n`;
-        await fs.writeFile(contextPath, defaultContext, 'utf8');
+        try {
+            await fs.access(contextPath);
+            // File exists, skip initialization
+        } catch {
+            // File doesn't exist, create it
+            const defaultContext = `# Agent ${agentId} Context\n\n## Current State\n- Status: Connected to MCP Server\n- Registered: ${new Date().toISOString()}\n\n## Capabilities\n${JSON.stringify(capabilities, null, 2)}\n\n## Knowledge Base\n\n## Recent Activities\n\n## Notes\n`;
+            await fs.writeFile(contextPath, defaultContext, 'utf8');
+        }
 
-        // Initialize task files
+        // Initialize task files (only if they don't exist)
         const taskFiles = [
             { path: path.join(agentPath, 'tasks', 'active.json'), content: [] },
             { path: path.join(agentPath, 'tasks', 'pending.json'), content: [] },
@@ -212,46 +219,90 @@ class MCPAgentServer {
         ];
 
         for (const file of taskFiles) {
-            await fs.writeFile(file.path, JSON.stringify(file.content, null, 2), 'utf8');
+            try {
+                await fs.access(file.path);
+                // File exists, skip initialization
+            } catch {
+                // File doesn't exist, create it
+                await fs.writeFile(file.path, JSON.stringify(file.content, null, 2), 'utf8');
+            }
         }
 
-        // Initialize relationships
+        // Initialize relationships (only if file doesn't exist)
         const relationshipsPath = path.join(agentPath, 'relationships.json');
-        const defaultRelationships = {
-            consumers: [],
-            producers: [],
-            bidirectional: [],
-            optional: []
-        };
-        await fs.writeFile(relationshipsPath, JSON.stringify(defaultRelationships, null, 2), 'utf8');
+        try {
+            await fs.access(relationshipsPath);
+            // File exists, skip initialization
+        } catch {
+            // File doesn't exist, create it
+            const defaultRelationships = {
+                consumers: [],
+                producers: [],
+                bidirectional: [],
+                optional: []
+            };
+            await fs.writeFile(relationshipsPath, JSON.stringify(defaultRelationships, null, 2), 'utf8');
+        }
 
-        // Initialize MCP config
+        // Update MCP config
         const mcpConfigPath = path.join(agentPath, 'mcp_config.json');
-        const mcpConfig = {
-            agentId,
-            capabilities,
-            connectedAt: new Date().toISOString(),
-            messageTypes: [
-                "TASK_REQUEST",
-                "TASK_RESPONSE", 
-                "STATUS_UPDATE",
-                "DEPENDENCY_NOTIFICATION",
-                "INTEGRATION_TEST",
-                "COMPLETION_NOTIFICATION",
-                "CONTEXT_SYNC"
-            ]
-        };
+        let mcpConfig;
+
+        if (isExisting) {
+            // For existing agents, read current config and update capabilities
+            try {
+                const existingConfig = await fs.readFile(mcpConfigPath, 'utf8');
+                mcpConfig = JSON.parse(existingConfig);
+                mcpConfig.capabilities = capabilities;
+                mcpConfig.lastUpdated = new Date().toISOString();
+            } catch {
+                // If config file is corrupted or missing, create new one
+                mcpConfig = {
+                    agentId,
+                    capabilities,
+                    connectedAt: new Date().toISOString(),
+                    messageTypes: [
+                        "TASK_REQUEST",
+                        "TASK_RESPONSE",
+                        "STATUS_UPDATE",
+                        "DEPENDENCY_NOTIFICATION",
+                        "INTEGRATION_TEST",
+                        "COMPLETION_NOTIFICATION",
+                        "CONTEXT_SYNC"
+                    ]
+                };
+            }
+        } else {
+            // For new agents, create fresh config
+            mcpConfig = {
+                agentId,
+                capabilities,
+                connectedAt: new Date().toISOString(),
+                messageTypes: [
+                    "TASK_REQUEST",
+                    "TASK_RESPONSE",
+                    "STATUS_UPDATE",
+                    "DEPENDENCY_NOTIFICATION",
+                    "INTEGRATION_TEST",
+                    "COMPLETION_NOTIFICATION",
+                    "CONTEXT_SYNC"
+                ]
+            };
+        }
+
         await fs.writeFile(mcpConfigPath, JSON.stringify(mcpConfig, null, 2), 'utf8');
 
-        // Store agent connection info
+        // Update agent connection info
+        const existingAgent = this.connectedAgents.get(agentId);
         this.connectedAgents.set(agentId, {
             agentId,
             capabilities,
-            connectedAt: new Date().toISOString(),
-            lastActivity: new Date().toISOString()
+            connectedAt: existingAgent ? existingAgent.connectedAt : new Date().toISOString(),
+            lastActivity: new Date().toISOString(),
+            registrationCount: existingAgent ? (existingAgent.registrationCount || 1) + 1 : 1
         });
 
-        console.log(`Agent ${agentId} registered successfully`);
+        console.log(`Agent ${agentId} ${isExisting ? 'updated' : 'registered'} successfully`);
     }
 
     /**

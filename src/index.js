@@ -14,21 +14,37 @@ class AgentCommunicationSystem {
     }
 
     /**
-     * Register a new agent in the system
+     * Register a new agent in the system or update existing one
      */
     async registerAgent(agentId, basePath = './agents') {
         if (this.agents.has(agentId)) {
-            throw new Error(`Agent ${agentId} is already registered`);
+            console.log(`Agent ${agentId} already exists, updating registration...`);
+            const existingAgent = this.agents.get(agentId);
+
+            // Re-initialize the agent to ensure it's up to date
+            await existingAgent.initialize();
+
+            // Ensure task queue is properly set up
+            if (!existingAgent.taskQueue) {
+                const taskQueue = new TaskQueue(existingAgent);
+                existingAgent.taskQueue = taskQueue;
+            }
+
+            // Re-register with communication protocol to update any handlers
+            await this.communicationProtocol.registerAgent(existingAgent);
+
+            console.log(`Agent ${agentId} registration updated successfully`);
+            return existingAgent;
         }
 
         const agent = new Agent(agentId, basePath);
         await agent.initialize();
-        
+
         const taskQueue = new TaskQueue(agent);
         agent.taskQueue = taskQueue;
 
         this.agents.set(agentId, agent);
-        
+
         // Register agent with communication protocol
         await this.communicationProtocol.registerAgent(agent);
 

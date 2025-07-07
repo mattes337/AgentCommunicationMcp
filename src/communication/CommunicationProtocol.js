@@ -20,12 +20,13 @@ class CommunicationProtocol {
      * Register an agent with the communication protocol
      */
     async registerAgent(agent) {
+        const isExisting = this.registeredAgents.has(agent.agentId);
         this.registeredAgents.set(agent.agentId, agent);
-        
-        // Set up default message handlers
+
+        // Set up default message handlers (safe to call multiple times)
         this.setupDefaultMessageHandlers(agent);
-        
-        console.log(`Agent ${agent.agentId} registered with communication protocol`);
+
+        console.log(`Agent ${agent.agentId} ${isExisting ? 'updated in' : 'registered with'} communication protocol`);
     }
 
     /**
