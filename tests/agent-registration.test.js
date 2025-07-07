@@ -71,10 +71,10 @@ describe('Agent Registration Updates', () => {
         expect(firstRegistration.capabilities).toEqual(capabilities1);
         expect(firstRegistration.registrationCount).toBe(1);
         
-        // Register same agent again with updated capabilities
-        await mcpServer.registerAgent(agentId, capabilities2);
+        // Register same agent again with updated capabilities (force update)
+        await mcpServer.registerAgent(agentId, capabilities2, true);
         expect(mcpServer.connectedAgents.has(agentId)).toBe(true);
-        
+
         const secondRegistration = mcpServer.connectedAgents.get(agentId);
         expect(secondRegistration.capabilities).toEqual(capabilities2);
         expect(secondRegistration.registrationCount).toBe(2);
@@ -122,8 +122,8 @@ describe('Agent Registration Updates', () => {
         expect(config.capabilities).toEqual(capabilities1);
         expect(config.lastUpdated).toBeUndefined();
 
-        // Register agent again with updated capabilities
-        await mcpServer.registerAgent(agentId, capabilities2);
+        // Register agent again with updated capabilities (force update)
+        await mcpServer.registerAgent(agentId, capabilities2, true);
 
         config = JSON.parse(await fs.readFile(mcpConfigPath, 'utf8'));
         expect(config.capabilities).toEqual(capabilities2);

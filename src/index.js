@@ -16,8 +16,13 @@ class AgentCommunicationSystem {
     /**
      * Register a new agent in the system or update existing one
      */
-    async registerAgent(agentId, basePath = './agents') {
+    async registerAgent(agentId, basePath = './agents', forceUpdate = false) {
         if (this.agents.has(agentId)) {
+            if (!forceUpdate) {
+                console.log(`Agent ${agentId} already exists, skipping re-registration`);
+                return this.agents.get(agentId);
+            }
+
             console.log(`Agent ${agentId} already exists, updating registration...`);
             const existingAgent = this.agents.get(agentId);
 
@@ -31,7 +36,7 @@ class AgentCommunicationSystem {
             }
 
             // Re-register with communication protocol to update any handlers
-            await this.communicationProtocol.registerAgent(existingAgent);
+            await this.communicationProtocol.registerAgent(existingAgent, true);
 
             console.log(`Agent ${agentId} registration updated successfully`);
             return existingAgent;
@@ -102,7 +107,8 @@ class AgentCommunicationSystem {
             title: taskData.title,
             description: taskData.description,
             priority: taskData.priority || 'medium',
-            agent_id: fromAgentId,
+            agent_id: toAgentId,
+            created_by: fromAgentId,
             target_agent_id: toAgentId,
             deliverables: taskData.deliverables || [],
             metadata: taskData.metadata || {}

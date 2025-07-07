@@ -7,6 +7,9 @@ const fs = require('fs').promises;
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
+// Load package.json to get project name and version
+const packageJson = require('../package.json');
+
 // Simple MCP-like server implementation
 class MCPMessage {
     constructor(id, method, params = {}) {
@@ -45,32 +48,56 @@ class MCPAgentServer {
      * Setup MCP request handlers
      */
     setupHandlers() {
+        // Handle MCP initialization
+        this.messageHandlers.set('initialize', async (params) => {
+            return {
+                protocolVersion: '2024-11-05',
+                capabilities: {
+                    tools: {},
+                    resources: {},
+                    prompts: {},
+                    logging: {}
+                },
+                serverInfo: {
+                    name: packageJson.name,
+                    version: packageJson.version
+                }
+            };
+        });
+
+        // Handle MCP initialized notification
+        this.messageHandlers.set('initialized', async (params) => {
+            // No response needed for notification
+            return null;
+        });
+
         // Handle agent registration
         this.messageHandlers.set('agent/register', async (params) => {
-            const { agentId, capabilities = {} } = params;
+            const { agentId, capabilities = {}, forceUpdate = false } = params;
 
             if (!agentId) {
                 throw new Error('Agent ID is required');
             }
 
-            await this.registerAgent(agentId, capabilities);
+            const result = await this.registerAgent(agentId, capabilities, forceUpdate);
 
             return {
                 success: true,
                 agentId,
-                message: `Agent ${agentId} registered successfully`
+                message: result.message,
+                wasUpdated: result.wasUpdated
             };
         });
 
         // Handle task creation
         this.messageHandlers.set('task/create', async (params) => {
-            const { agentId, task } = params;
+            const { agentId, task, createdBy } = params;
 
             if (!agentId || !task) {
                 throw new Error('Agent ID and task are required');
             }
 
-            const taskId = await this.createTask(agentId, task);
+            const taskId = await this.createTask(agentId, task, createdBy);
 
             return {
                 success: true,
@@ -189,8 +216,17 @@ class MCPAgentServer {
     /**
      * Register a new agent or update existing one
      */
-    async registerAgent(agentId, capabilities) {
+    async registerAgent(agentId, capabilities, forceUpdate = false) {
         const isExisting = this.connectedAgents.has(agentId);
+
+        if (isExisting && !forceUpdate) {
+            console.log(`Agent ${agentId} already registered, skipping re-registration`);
+            return {
+                message: `Agent ${agentId} already registered`,
+                wasUpdated: false
+            };
+        }
+
         console.log(`${isExisting ? 'Updating' : 'Registering'} agent: ${agentId}`);
 
         // Create agent directory structure (safe to call even if exists)
@@ -303,12 +339,17 @@ class MCPAgentServer {
         });
 
         console.log(`Agent ${agentId} ${isExisting ? 'updated' : 'registered'} successfully`);
+
+        return {
+            message: `Agent ${agentId} ${isExisting ? 'updated' : 'registered'} successfully`,
+            wasUpdated: isExisting
+        };
     }
 
     /**
      * Create a task for an agent
      */
-    async createTask(agentId, taskData) {
+    async createTask(agentId, taskData, createdBy = null) {
         const taskId = uuidv4();
         const task = {
             id: taskId,
@@ -320,6 +361,7 @@ class MCPAgentServer {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             agent_id: agentId,
+            created_by: createdBy || taskData.created_by || agentId,
             target_agent_id: taskData.target_agent_id || null,
             reference_task_id: taskData.reference_task_id || null,
             dependencies: taskData.dependencies || [],
@@ -360,7 +402,8 @@ class MCPAgentServer {
             task_data: {
                 ...taskRequest,
                 id: uuidv4(),
-                agent_id: fromAgentId,
+                agent_id: toAgentId,
+                created_by: fromAgentId,
                 target_agent_id: toAgentId,
                 created_at: new Date().toISOString()
             }

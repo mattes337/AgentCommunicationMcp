@@ -6,6 +6,9 @@
 
 const SharedMCPClient = require('./mcp-client-shared.js');
 
+// Load package.json to get project name and version
+const packageJson = require('../package.json');
+
 class MCPProxy {
     constructor(serverUrl = 'ws://localhost:8080/mcp') {
         this.client = new SharedMCPClient(serverUrl);
@@ -64,8 +67,8 @@ class MCPProxy {
                             logging: {}
                         },
                         serverInfo: {
-                            name: 'agent-communication-mcp-proxy',
-                            version: '1.0.0'
+                            name: `${packageJson.name}-proxy`,
+                            version: packageJson.version
                         }
                     }
                 };

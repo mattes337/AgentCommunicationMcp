@@ -64,7 +64,7 @@ class MCPAgentClient {
     /**
      * Register the agent with the server
      */
-    async register() {
+    async register(forceUpdate = false) {
         if (!this.isConnected) {
             throw new Error('Not connected to MCP server');
         }
@@ -74,7 +74,8 @@ class MCPAgentClient {
                 method: 'agent/register',
                 params: {
                     agentId: this.agentId,
-                    capabilities: this.capabilities
+                    capabilities: this.capabilities,
+                    forceUpdate: forceUpdate
                 }
             },
             {}

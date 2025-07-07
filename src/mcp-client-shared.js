@@ -158,8 +158,8 @@ class SharedMCPClient {
     /**
      * Register an agent
      */
-    async registerAgent(agentId, capabilities = {}) {
-        return this.request('agent/register', { agentId, capabilities });
+    async registerAgent(agentId, capabilities = {}, forceUpdate = false) {
+        return this.request('agent/register', { agentId, capabilities, forceUpdate });
     }
 
     /**

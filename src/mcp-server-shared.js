@@ -32,6 +32,10 @@ class SharedMCPServer {
     setupHandlers() {
         // Import handlers from the original MCP server
         const MCPAgentServer = require('./mcp-server.js');
+
+        // Load package.json to get project name and version
+        const packageJson = require('../package.json');
+
         const originalServer = new MCPAgentServer();
         
         // Copy all handlers from the original server
@@ -105,7 +109,8 @@ class SharedMCPServer {
             method: 'server/welcome',
             params: {
                 clientId: clientId,
-                serverVersion: '1.0.0',
+                serverVersion: packageJson.version,
+                serverName: packageJson.name,
                 availableMethods: Array.from(this.messageHandlers.keys())
             }
         };

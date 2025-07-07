@@ -19,8 +19,14 @@ class CommunicationProtocol {
     /**
      * Register an agent with the communication protocol
      */
-    async registerAgent(agent) {
+    async registerAgent(agent, forceUpdate = false) {
         const isExisting = this.registeredAgents.has(agent.agentId);
+
+        if (isExisting && !forceUpdate) {
+            console.log(`Agent ${agent.agentId} already registered with communication protocol, skipping`);
+            return;
+        }
+
         this.registeredAgents.set(agent.agentId, agent);
 
         // Set up default message handlers (safe to call multiple times)

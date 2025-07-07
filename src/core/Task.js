@@ -15,7 +15,8 @@ class Task {
         this.status = options.status || 'pending'; // pending|in_progress|completed|blocked
         this.created_at = options.created_at || new Date().toISOString();
         this.updated_at = options.updated_at || new Date().toISOString();
-        this.agent_id = options.agent_id || '';
+        this.agent_id = options.agent_id || ''; // Agent responsible for the task
+        this.created_by = options.created_by || options.agent_id || ''; // Agent who created the task
         this.target_agent_id = options.target_agent_id || null;
         this.reference_task_id = options.reference_task_id || null;
         this.dependencies = options.dependencies || [];
@@ -119,6 +120,7 @@ class Task {
             description: responseData.description || `Response to request: ${this.description}`,
             priority: this.priority,
             agent_id: respondingAgentId,
+            created_by: respondingAgentId,
             target_agent_id: this.agent_id,
             reference_task_id: this.id,
             deliverables: responseData.deliverables || [],
@@ -143,6 +145,7 @@ class Task {
             created_at: this.created_at,
             updated_at: this.updated_at,
             agent_id: this.agent_id,
+            created_by: this.created_by,
             target_agent_id: this.target_agent_id,
             reference_task_id: this.reference_task_id,
             dependencies: this.dependencies,
@@ -167,6 +170,7 @@ class Task {
         if (!this.id) errors.push('Task ID is required');
         if (!this.title) errors.push('Task title is required');
         if (!this.agent_id) errors.push('Agent ID is required');
+        if (!this.created_by) errors.push('Task creator (created_by) is required');
         if (!['implementation', 'request', 'response'].includes(this.type)) {
             errors.push('Task type must be implementation, request, or response');
         }
