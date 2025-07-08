@@ -244,11 +244,155 @@ class MCPAgentServer {
             };
         });
 
+        // Handle task retrieval
+        this.messageHandlers.set('task/get', async (params) => {
+            const { agentId, state } = params;
+
+            if (!agentId) {
+                throw new Error('Agent ID is required');
+            }
+
+            const tasks = await this.getTasks(agentId, state);
+
+            return {
+                success: true,
+                tasks,
+                message: `Tasks retrieved for agent ${agentId}${state ? ` with state ${state}` : ''}`
+            };
+        });
+
+        // Handle tools/list request
+        this.messageHandlers.set('tools/list', async () => {
+            return {
+                tools: [
+                    {
+                        name: 'agent-register',
+                        description: 'Register a new agent',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                agentId: { type: 'string' },
+                                capabilities: { type: 'object' },
+                                forceUpdate: { type: 'boolean' }
+                            },
+                            required: ['agentId']
+                        }
+                    },
+                    {
+                        name: 'agent-status',
+                        description: 'Get agent or system status',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                agentId: { type: 'string' }
+                            }
+                        }
+                    },
+                    {
+                        name: 'task-create',
+                        description: 'Create a new task',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                agentId: { type: 'string' },
+                                task: { type: 'object' },
+                                createdBy: { type: 'string' }
+                            },
+                            required: ['agentId', 'task']
+                        }
+                    },
+                    {
+                        name: 'task-get',
+                        description: 'Get tasks for an agent, optionally filtered by state',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                agentId: { type: 'string' },
+                                state: {
+                                    type: 'string',
+                                    enum: ['pending', 'active', 'completed'],
+                                    description: 'Filter tasks by state (optional)'
+                                }
+                            },
+                            required: ['agentId']
+                        }
+                    },
+                    {
+                        name: 'task-request',
+                        description: 'Send task request between agents',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                fromAgentId: { type: 'string' },
+                                toAgentId: { type: 'string' },
+                                taskRequest: { type: 'object' }
+                            },
+                            required: ['fromAgentId', 'toAgentId', 'taskRequest']
+                        }
+                    },
+                    {
+                        name: 'task-update',
+                        description: 'Update task status',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                agentId: { type: 'string' },
+                                taskId: { type: 'string' },
+                                status: { type: 'string' },
+                                deliverables: { type: 'array', items: { type: 'object' } }
+                            },
+                            required: ['agentId', 'taskId', 'status']
+                        }
+                    },
+                    {
+                        name: 'relationship-add',
+                        description: 'Add agent relationship',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                agentId: { type: 'string' },
+                                targetAgentId: { type: 'string' },
+                                relationshipType: { type: 'string' }
+                            },
+                            required: ['agentId', 'targetAgentId', 'relationshipType']
+                        }
+                    },
+                    {
+                        name: 'context-update',
+                        description: 'Update agent context',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                agentId: { type: 'string' },
+                                context: { type: 'string' }
+                            },
+                            required: ['agentId', 'context']
+                        }
+                    },
+                    {
+                        name: 'message-send',
+                        description: 'Send message between agents',
+                        inputSchema: {
+                            type: 'object',
+                            properties: {
+                                fromAgentId: { type: 'string' },
+                                toAgentId: { type: 'string' },
+                                messageType: { type: 'string' },
+                                messageData: { type: 'object' }
+                            },
+                            required: ['fromAgentId', 'toAgentId', 'messageType']
+                        }
+                    }
+                ]
+            };
+        });
+
         // Add MCP-compliant tool name handlers (without slashes)
         // These map to the existing handlers for backward compatibility
         this.messageHandlers.set('agent-register', this.messageHandlers.get('agent/register'));
         this.messageHandlers.set('agent-status', this.messageHandlers.get('agent/status'));
         this.messageHandlers.set('task-create', this.messageHandlers.get('task/create'));
+        this.messageHandlers.set('task-get', this.messageHandlers.get('task/get'));
         this.messageHandlers.set('task-request', this.messageHandlers.get('task/request'));
         this.messageHandlers.set('task-update', this.messageHandlers.get('task/update'));
         this.messageHandlers.set('relationship-add', this.messageHandlers.get('relationship/add'));
@@ -571,15 +715,54 @@ class MCPAgentServer {
     }
 
     /**
+     * Get tasks for an agent, optionally filtered by state
+     */
+    async getTasks(agentId, state = null) {
+        const agentPath = path.join(this.basePath, agentId);
+        const validStates = ['pending', 'active', 'completed'];
+
+        if (state && !validStates.includes(state)) {
+            throw new Error(`Invalid state: ${state}. Must be one of: ${validStates.join(', ')}`);
+        }
+
+        const results = {};
+        const statesToLoad = state ? [state] : validStates;
+
+        for (const stateToLoad of statesToLoad) {
+            const fileName = stateToLoad === 'active' ? 'active.json' :
+                           stateToLoad === 'pending' ? 'pending.json' : 'completed.json';
+            const filePath = path.join(agentPath, 'tasks', fileName);
+
+            try {
+                const content = await fs.readFile(filePath, 'utf8');
+                const tasks = JSON.parse(content);
+                results[stateToLoad] = tasks;
+            } catch (error) {
+                // File might not exist, return empty array
+                results[stateToLoad] = [];
+            }
+        }
+
+        // If a specific state was requested, return just that array
+        if (state) {
+            return results[state];
+        }
+
+        // Otherwise return all states
+        return results;
+    }
+
+    /**
      * Get agent status
      */
     async getAgentStatus(agentId) {
         const agentPath = path.join(this.basePath, agentId);
-        
-        // Get task counts
+
+        // Get task counts and pending tasks
         const taskCounts = { active: 0, pending: 0, completed: 0 };
         const taskFiles = ['active.json', 'pending.json', 'completed.json'];
-        
+        let pendingTasks = [];
+
         for (let i = 0; i < taskFiles.length; i++) {
             const filePath = path.join(agentPath, 'tasks', taskFiles[i]);
             try {
@@ -587,6 +770,11 @@ class MCPAgentServer {
                 const tasks = JSON.parse(content);
                 const key = ['active', 'pending', 'completed'][i];
                 taskCounts[key] = tasks.length;
+
+                // Store pending tasks for inclusion in status
+                if (key === 'pending') {
+                    pendingTasks = tasks;
+                }
             } catch (error) {
                 // File might not exist
             }
@@ -612,6 +800,7 @@ class MCPAgentServer {
             agentId,
             connected: this.connectedAgents.has(agentId),
             tasks: taskCounts,
+            pendingTasks: pendingTasks,
             relationships: relationshipCounts,
             lastActivity: this.connectedAgents.get(agentId)?.lastActivity || null
         };
@@ -729,10 +918,11 @@ class MCPAgentServer {
         console.log('Available MCP tools (MCP-compliant names):');
         console.log('  - agent-register: Register a new agent');
         console.log('  - task-create: Create a new task');
+        console.log('  - task-get: Get tasks for an agent, optionally filtered by state');
         console.log('  - task-request: Send task request between agents');
         console.log('  - task-update: Update task status');
         console.log('  - relationship-add: Add agent relationship');
-        console.log('  - agent-status: Get agent or system status');
+        console.log('  - agent-status: Get agent or system status (now includes pending tasks)');
         console.log('  - context-update: Update agent context');
         console.log('  - message-send: Send message between agents');
         console.log('');

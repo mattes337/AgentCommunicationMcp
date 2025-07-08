@@ -138,6 +138,22 @@ class MCPProxy {
                                 }
                             },
                             {
+                                name: 'task-get',
+                                description: 'Get tasks for an agent, optionally filtered by state',
+                                inputSchema: {
+                                    type: 'object',
+                                    properties: {
+                                        agentId: { type: 'string' },
+                                        state: {
+                                            type: 'string',
+                                            enum: ['pending', 'active', 'completed'],
+                                            description: 'Filter tasks by state (optional)'
+                                        }
+                                    },
+                                    required: ['agentId']
+                                }
+                            },
+                            {
                                 name: 'task-update',
                                 description: 'Update task status',
                                 inputSchema: {

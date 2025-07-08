@@ -211,15 +211,16 @@ All tools work with both standard and shared servers:
 **MCP-Compliant Tool Names:**
 - `agent-register` - Register a new agent
 - `task-create` - Create a new task
+- `task-get` - Get tasks for an agent, optionally filtered by state
 - `task-request` - Send task request between agents
 - `task-update` - Update task status
 - `relationship-add` - Add agent relationship
-- `agent-status` - Get agent or system status
+- `agent-status` - Get agent or system status (now includes pending tasks)
 - `context-update` - Update agent context
 - `message-send` - Send message between agents
 
 **Legacy Method Names (still supported):**
-- `agent/register`, `task/create`, `task/request`, `task/update`
+- `agent/register`, `task/create`, `task/get`, `task/request`, `task/update`
 - `relationship/add`, `agent/status`, `context/update`, `message/send`
 
 ## 🎯 Use Cases

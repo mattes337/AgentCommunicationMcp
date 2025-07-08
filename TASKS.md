@@ -9,6 +9,11 @@ This file tracks the current tasks and development progress for the Agent Commun
 - [x] **Add task creator field to task structure** - Tasks now store the creator (created_by) separate from the responsible agent (agent_id)
 - [x] **Prevent unnecessary agent re-registration** - Added forceUpdate parameter to control when agents should be re-registered
 
+### Task Management Tools
+- [x] **Add task-get tool** - New MCP tool to retrieve tasks for an agent, optionally filtered by state (pending, active, completed)
+- [x] **Update agent-status tool** - Enhanced to include pending tasks in the response for better visibility
+- [x] **Add tools/list handler** - Proper MCP tools discovery endpoint with complete tool definitions
+
 ### Core Features
 - [x] **Multi-Agent Communication System** - File-based communication system using MCP protocol
 - [x] **Task Management** - Task creation, assignment, and tracking between agents

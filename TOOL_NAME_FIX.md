@@ -25,8 +25,9 @@ All tool names have been updated to use hyphens instead of slashes:
 | Legacy Name (Invalid) | New MCP-Compliant Name | Description |
 |----------------------|------------------------|-------------|
 | `agent/register`     | `agent-register`       | Register a new agent |
-| `agent/status`       | `agent-status`         | Get agent or system status |
+| `agent/status`       | `agent-status`         | Get agent or system status (now includes pending tasks) |
 | `task/create`        | `task-create`          | Create a new task |
+| `task/get`           | `task-get`             | Get tasks for an agent, optionally filtered by state |
 | `task/request`       | `task-request`         | Send task request between agents |
 | `task/update`        | `task-update`          | Update task status |
 | `relationship/add`   | `relationship-add`     | Add agent relationship |

@@ -365,6 +365,7 @@ All standard MCP tools are supported:
 **MCP-Compliant Tool Names:**
 - `agent-register`
 - `task-create`
+- `task-get`
 - `task-update`
 - `task-request`
 - `relationship-add`
@@ -373,7 +374,7 @@ All standard MCP tools are supported:
 - `message-send`
 
 **Legacy Method Names (still supported):**
-- `agent/register`, `task/create`, `task/update`, `task/request`
+- `agent/register`, `task/create`, `task/get`, `task/update`, `task/request`
 - `relationship/add`, `agent/status`, `context/update`, `message/send`
 
 ### Example Client Code

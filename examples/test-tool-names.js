@@ -114,8 +114,9 @@ class ToolNameTest {
             console.log('📋 Testing MCP-compliant tool names...');
             const expectedTools = [
                 'agent-register',
-                'agent-status', 
+                'agent-status',
                 'task-create',
+                'task-get',
                 'task-request',
                 'task-update',
                 'relationship-add',
